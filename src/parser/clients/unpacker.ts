@@ -6,6 +6,7 @@ import {
   SignalData,
 } from "../types";
 import Connection from "better-sqlite3";
+import Reader from "./reader";
 
 const columns: Record<string, CompactTables> = {
   compact: {
@@ -51,40 +52,6 @@ class CDPUnpacker {
     );
   }
 
-  private read = (
-    buffer: Buffer,
-    type: number,
-    offset: number = 5,
-    length: number = 1
-  ) => {
-    switch (type) {
-      case CDPDataTypes.DOUBLE:
-        return buffer.readDoubleLE(offset);
-      case CDPDataTypes.UINT64:
-        return buffer.readBigUInt64LE(offset);
-      case CDPDataTypes.INT64:
-        return buffer.readBigInt64LE(offset);
-      case CDPDataTypes.FLOAT:
-        return buffer.readFloatLE(offset);
-      case CDPDataTypes.UINT:
-        return buffer.readUIntLE(offset, length);
-      case CDPDataTypes.INT:
-        return buffer.readIntLE(offset, length);
-      case CDPDataTypes.USHORT:
-        return buffer.readIntLE(offset, length);
-      case CDPDataTypes.SHORT:
-        return buffer.readIntLE(offset, length);
-      case CDPDataTypes.UCHAR:
-        return buffer.readIntLE(offset, length);
-      case CDPDataTypes.CHAR:
-        return buffer.readIntLE(offset, length);
-      case CDPDataTypes.BOOL:
-        return buffer.readIntLE(offset, length);
-      case CDPDataTypes.STRING:
-        return buffer.readIntLE(offset, length);
-    }
-  };
-
   private parseSplit(map?: Map<number, SignalData>) {
     const statement = this.connection.prepare(
       `SELECT * FROM ${this.columns.values}`
@@ -94,9 +61,7 @@ class CDPUnpacker {
       const time = entry.x_axis;
       const buffer: Buffer = entry.y_axis_data;
 
-      const id = buffer.readIntLE(2, 2);
-      const type = buffer.readIntLE(4, 1);
-      const value = this.read(buffer, type, 5);
+      const { id, value } = Reader.split(buffer)
 
       const signal = (map || this.map).get(id);
 
@@ -124,7 +89,7 @@ class CDPUnpacker {
       const time = entry.x_axis;
       const buffer: Buffer = entry.y_axis_data;
 
-      const id = buffer.readIntLE(2, 2);
+      const id = Reader.compact(buffer)
 
       const signal = this.map.get(id);
 
@@ -132,7 +97,7 @@ class CDPUnpacker {
         throw new Error(`Signal with ID ${id} not found!`);
       }
 
-      const value = this.read(buffer, getTypeFromString(signal.type!), 3);
+      const value = Reader.read(buffer, getTypeFromString(signal.type!), 3);
 
       const match = temp.get(signal.name) || { ...signal };
 
