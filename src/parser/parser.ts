@@ -4,7 +4,7 @@ import CDPCompact from "./clients/compact";
 import CDPSplit from "./clients/split";
 import { CDPDataStore, CDPInterface, Signal } from "./types";
 
-class CDPParser {
+class CDPParser implements CDPInterface {
   private client: CDPInterface;
 
   constructor(file: string) {
@@ -25,6 +25,10 @@ class CDPParser {
 
   public parse(): Map<string, Signal> {
     return this.client.parse();
+  }
+
+  public range(): { min: number, max: number } {
+    return this.client.range();
   }
 
   private getType = (file: string) => {

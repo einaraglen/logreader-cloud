@@ -18,19 +18,32 @@ class CDPBasic implements CDPInterface {
 
     for (const row of statement.iterate()) {
       const time = row.timestamp;
-      const map = new Map(Object.entries(row))
+      const map = new Map(Object.entries(row));
 
-      map.delete("id")
-      map.delete("timestamp")
+      map.delete("id");
+      map.delete("timestamp");
 
       for (const [key, value] of map) {
-        const previous = (values.get(key) || { name: key, values: new Map() })
-        previous.values.set(parseFloat(time), parseFloat(value as any))
-        values.set(key, previous)
+        const previous = values.get(key) || { name: key, values: new Map() };
+        previous.values.set(parseFloat(time), parseFloat(value as any));
+        values.set(key, previous);
       }
     }
 
     return values;
+  }
+
+  public range() {
+    const collection = this.connection
+      .prepare(`SELECT timestamp FROM SQLSignalLogger`)
+      .pluck()
+      .all()
+      .sort();
+
+    return {
+      min: parseFloat(collection.at(0)),
+      max: parseFloat(collection.at(-1)),
+    };
   }
 }
 

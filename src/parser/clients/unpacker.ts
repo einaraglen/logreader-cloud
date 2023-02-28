@@ -92,7 +92,7 @@ class CDPUnpacker {
 
     for (const entry of statement.iterate()) {
       const time = entry.x_axis;
-      const buffer: Buffer = entry.y_axis_data; 
+      const buffer: Buffer = entry.y_axis_data;
 
       const id = buffer.readIntLE(2, 2);
       const type = buffer.readIntLE(4, 1);
@@ -108,9 +108,9 @@ class CDPUnpacker {
       (map || this.map).set(id, signal);
     }
 
-    this.connection.close()
+    this.connection.close();
 
-    return this.map
+    return this.map;
   }
 
   private parseCompact() {
@@ -118,7 +118,7 @@ class CDPUnpacker {
       `SELECT * FROM ${this.columns.values}`
     );
 
-    const temp = new Map<string, SignalData>()
+    const temp = new Map<string, SignalData>();
 
     for (const entry of statement.iterate()) {
       const time = entry.x_axis;
@@ -134,19 +134,15 @@ class CDPUnpacker {
 
       const value = this.read(buffer, getTypeFromString(signal.type!), 3);
 
-      const match = (temp.get(signal.name) || { ...signal })
+      const match = temp.get(signal.name) || { ...signal };
 
       match.values.set(time, value);
       temp.set(signal.name, signal);
     }
 
-    this.connection.close()
+    this.connection.close();
 
-    return  temp;
-  }
-
-  public getMap() {
-    return this.map;
+    return temp;
   }
 
   public parse(map?: Map<number, SignalData>) {
@@ -158,6 +154,16 @@ class CDPUnpacker {
       default:
         throw new Error("Unsupported CDPDataStore type for unpacker");
     }
+  }
+
+  public range() {
+    const collection = this.connection
+      .prepare(`SELECT x_axis FROM ${this.columns.values}`)
+      .pluck()
+      .all()
+      .sort();
+
+    return { min: collection.at(0), max: collection.at(-1) };
   }
 
   public close() {

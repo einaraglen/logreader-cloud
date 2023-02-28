@@ -59,6 +59,25 @@ class CDPSplit implements CDPInterface {
 
     return temp;
   }
+
+  public range() {
+    const ranges: number[] = [];
+
+    this.files.forEach((index) => {
+      const file = path.join(path.dirname(this.file), `SignalLog${index}.db`);
+      const unpacker = new CDPUnpacker(file, CDPDataStore.Split);
+      const currentRange = unpacker.range();
+      ranges.push(currentRange.min);
+      ranges.push(currentRange.max);
+    });
+
+    const sorted = ranges.sort()
+
+    return {
+      min: sorted.at(0),
+      max: sorted.at(-1),
+    };
+  }
 }
 
 export default CDPSplit;

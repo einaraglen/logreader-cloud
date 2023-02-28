@@ -12,6 +12,10 @@ class CDPCompact implements CDPInterface {
     public parse() {
         return this.unpacker.parse()
     }
+
+    public range() {
+        return this.unpacker.range()
+    }
 }
 
 export default CDPCompact;

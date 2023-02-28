@@ -4,6 +4,7 @@ import CDPParser from "./parser/parser";
 
 const run = () => {
     const parser = new CDPParser("./assets/compact/SignalLog.db")
+    // console.log(parser.range())
     const data = parser.parse()
     console.log(Array.from(data).at(3))
 }

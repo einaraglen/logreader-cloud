@@ -6,6 +6,7 @@ export enum CDPDataStore {
 
 export interface CDPInterface {
   parse: () => any;
+  range: () => any;
 }
 
 export type CompactTables = {
