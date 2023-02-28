@@ -45,6 +45,20 @@ export enum CDPDataTypes {
   STRING,
 }
 
+export const columns: Record<string, CompactTables> = {
+    compact: {
+      info: "KeyValue",
+      values: "SignalValues",
+      map: "SignalMap",
+    },
+    split: {
+      info: "KeyValue",
+      values: "NodeValues",
+      map: "Node",
+    },
+  };
+  
+
 export const getTypeFromString = (type: string) => {
   const match = (Object.freeze(CDPDataTypes) as any)[type.toUpperCase()];
 

@@ -1,6 +1,6 @@
 import {
   CDPDataStore,
-  CDPDataTypes,
+  columns,
   CompactTables,
   getTypeFromString,
   SignalData,
@@ -8,18 +8,6 @@ import {
 import Connection from "better-sqlite3";
 import Reader from "./reader";
 
-const columns: Record<string, CompactTables> = {
-  compact: {
-    info: "KeyValue",
-    values: "SignalValues",
-    map: "SignalMap",
-  },
-  split: {
-    info: "KeyValue",
-    values: "NodeValues",
-    map: "Node",
-  },
-};
 
 class CDPUnpacker {
   private type: CDPDataStore;
