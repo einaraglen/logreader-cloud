@@ -1,8 +1,16 @@
-import Connection from "better-sqlite3";
+import { CDPDataStore, CDPInterface } from "../types";
+import CDPUnpacker from "./unpacker";
 
-class CDPCompact {
+class CDPCompact implements CDPInterface {
+
+    private unpacker: CDPUnpacker
+
     constructor(file: string) {
+        this.unpacker = new CDPUnpacker(file, CDPDataStore.Compact)
+    }
 
+    public parse() {
+        return this.unpacker.parse()
     }
 }
 

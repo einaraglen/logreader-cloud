@@ -1,18 +1,11 @@
-import { CDPDataStore, CDPDataTypes, getTypeFromString } from "../types";
+import {
+  CDPDataStore,
+  CDPDataTypes,
+  CompactTables,
+  getTypeFromString,
+  SignalData,
+} from "../types";
 import Connection from "better-sqlite3";
-
-export type CompactTables = {
-  values: string;
-  info: string;
-  map: string;
-};
-
-export type SignalData = {
-  id: number;
-  name: string;
-  path: string;
-  type?: string;
-};
 
 const columns: Record<string, CompactTables> = {
   compact: {
@@ -44,12 +37,18 @@ class CDPUnpacker {
     this.init();
   }
 
+  public setMap(map: Map<number, SignalData>) {
+    this.map = map;
+  }
+
   private init() {
     const collection: SignalData[] = this.connection
       .prepare(`SELECT * FROM ${this.columns.map}`)
       .all();
 
-    this.map = new Map(collection.map((item) => [item.id, item]));
+    this.map = new Map(
+      collection.map((item) => [item.id!, { ...item, values: new Map() }])
+    );
   }
 
   private read = (
@@ -86,37 +85,32 @@ class CDPUnpacker {
     }
   };
 
-  private parseSplit() {
+  private parseSplit(map?: Map<number, SignalData>) {
     const statement = this.connection.prepare(
       `SELECT * FROM ${this.columns.values}`
     );
 
-    const values: Map<number, { time: number; value: any }[]> = new Map();
-
     for (const entry of statement.iterate()) {
       const time = entry.x_axis;
-      const buffer: Buffer = entry.y_axis_data;
+      const buffer: Buffer = entry.y_axis_data; 
 
       const id = buffer.readIntLE(2, 2);
       const type = buffer.readIntLE(4, 1);
       const value = this.read(buffer, type, 5);
 
-      const signal = this.map.get(id);
+      const signal = (map || this.map).get(id);
 
       if (signal == null) {
         throw new Error(`Signal with ID ${id} not found!`);
       }
 
-      if (values.size == 0) {
-        console.log(id)
-      }
-
-      const collection = values.get(id) || [];
-      collection.push({ time, value });
-      values.set(id, collection);
+      signal.values.set(time, value);
+      (map || this.map).set(id, signal);
     }
 
-    return values
+    this.connection.close()
+
+    return this.map
   }
 
   private parseCompact() {
@@ -124,7 +118,7 @@ class CDPUnpacker {
       `SELECT * FROM ${this.columns.values}`
     );
 
-    const values: Map<number, { time: number; value: any }[]> = new Map();
+    const temp = new Map<string, SignalData>()
 
     for (const entry of statement.iterate()) {
       const time = entry.x_axis;
@@ -140,24 +134,27 @@ class CDPUnpacker {
 
       const value = this.read(buffer, getTypeFromString(signal.type!), 3);
 
-      const collection = values.get(id) || [];
-      collection.push({ time, value });
-      values.set(id, collection);
+      const match = (temp.get(signal.name) || { ...signal })
+
+      match.values.set(time, value);
+      temp.set(signal.name, signal);
     }
 
-    return values;
+    this.connection.close()
+
+    return  temp;
   }
 
   public getMap() {
-    return this.map
+    return this.map;
   }
 
-  public parse() {
+  public parse(map?: Map<number, SignalData>) {
     switch (this.type) {
       case CDPDataStore.Compact:
         return this.parseCompact();
       case CDPDataStore.Split:
-        return this.parseSplit();
+        return this.parseSplit(map);
       default:
         throw new Error("Unsupported CDPDataStore type for unpacker");
     }

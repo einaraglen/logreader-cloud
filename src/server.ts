@@ -1,13 +1,11 @@
 /* eslint no-unmodified-loop-condition: "off" */
-
-import { CDPDataStore } from "./parser/types";
-import CDPUnpacker from "./parser/clients/unpacker";
+import CDPParser from "./parser/parser";
 
 
 const run = () => {
-   const unpacker = new CDPUnpacker("./assets/split/SignalLog0.db", CDPDataStore.Split)
-   const values = unpacker.parse()
-   console.log(values.get(3))
+    const parser = new CDPParser("./assets/compact/SignalLog.db")
+    const data = parser.parse()
+    console.log(Array.from(data).at(3))
 }
 
 export default run;
