@@ -2,7 +2,12 @@ import dotenv from "dotenv";
 import * as path from "path";
 
 const variables: string[] = [
-
+  "DATABASE_URL",
+  "MINIO_ENDPOINT",
+  "MINIO_BUCKET",
+  "MINIO_REGION",
+  "MINIO_ACCESS_KEY",
+  "MINIO_SECRET_KEY"
 ];
 
 const config = async () => {

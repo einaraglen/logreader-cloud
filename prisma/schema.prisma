@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Extraction {
+  id Int @id @default(autoincrement())
+  result_id Int
+  signals Signal[]
+}
+
+model Signal {
+  id Int @id @default(autoincrement())
+  name String
+  path String?
+  from DateTime 
+  to DateTime 
+  extraction Extraction @relation(fields: [extraction_id], references: [id], onDelete: Cascade)
+  extraction_id Int
+  values Value[]
+}
+
+model Value {
+  signal Signal @relation(fields: [signal_id], references: [id], onDelete: Cascade)
+  signal_id Int 
+  x DateTime
+  y Float
+
+  @@unique([signal_id,  x])
+  @@index(fields: [x], map: "Value_x_idx")
+}

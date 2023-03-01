@@ -66,9 +66,15 @@ class CDPSplit implements CDPInterface {
     this.files.forEach((index) => {
       const file = path.join(path.dirname(this.file), `SignalLog${index}.db`);
       const unpacker = new CDPUnpacker(file, CDPDataStore.Split);
-      const currentRange = unpacker.range();
-      ranges.push(currentRange.min);
-      ranges.push(currentRange.max);
+      const { min, max } = unpacker.range();
+      
+      if (min) {
+        ranges.push(min);
+      }
+
+      if (max) {
+        ranges.push(max);
+      }
     });
 
     const sorted = ranges.sort()

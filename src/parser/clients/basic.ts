@@ -25,7 +25,7 @@ class CDPBasic implements CDPInterface {
 
       for (const [key, value] of map) {
         const previous = values.get(key) || { name: key, values: new Map() };
-        previous.values.set(parseFloat(time), parseFloat(value as any));
+        previous.values.set(parseFloat(time)  * 1000, parseFloat(value as any));
         values.set(key, previous);
       }
     }
@@ -41,8 +41,8 @@ class CDPBasic implements CDPInterface {
       .sort();
 
     return {
-      min: parseFloat(collection.at(0)),
-      max: parseFloat(collection.at(-1)),
+      min: parseFloat(collection.at(0)) * 1000,
+      max: parseFloat(collection.at(-1)) * 1000,
     };
   }
 }

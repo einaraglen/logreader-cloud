@@ -8,7 +8,6 @@ import {
 import Connection from "better-sqlite3";
 import Reader from "./reader";
 
-
 class CDPUnpacker {
   private type: CDPDataStore;
   private map: Map<number, SignalData> = new Map();
@@ -40,16 +39,42 @@ class CDPUnpacker {
     );
   }
 
+  private keyframes(missing: SignalData[]) {
+    try {
+      const query = this.connection
+        .prepare(`SELECT * FROM KeyFrames1 ORDER BY x_axis ASC LIMIT 1`)
+        .all()[0];
+
+      const values = new Map(Object.entries(query));
+
+      const time: number = values.get("x_axis") as any;
+
+      return new Map(
+        missing.map((entry) => [
+          entry.name,
+          {
+            ...entry,
+            values: new Map([[time, values.get(`${entry.name}Last`)]]),
+          },
+        ])
+      );
+    } catch (e) {
+      return new Map();
+    }
+  }
+
   private parseSplit(map?: Map<number, SignalData>) {
     const statement = this.connection.prepare(
       `SELECT * FROM ${this.columns.values}`
     );
 
+    let missing = Array.from(this.map).map(([key, value]) => value);
+
     for (const entry of statement.iterate()) {
-      const time = entry.x_axis;
+      const time = entry.x_axis * 1000;
       const buffer: Buffer = entry.y_axis_data;
 
-      const { id, value } = Reader.split(buffer)
+      const { id, value } = Reader.split(buffer);
 
       const signal = (map || this.map).get(id);
 
@@ -57,13 +82,19 @@ class CDPUnpacker {
         throw new Error(`Signal with ID ${id} not found!`);
       }
 
+      missing = missing.filter((item) => item.name !== signal.name);
+
       signal.values.set(time, value);
       (map || this.map).set(id, signal);
     }
 
+    this.keyframes(missing).forEach((value: any, key: any) =>
+      (map || this.map).set(key, value)
+    );
+
     this.connection.close();
 
-    return this.map;
+    return map || this.map;
   }
 
   private parseCompact() {
@@ -71,19 +102,23 @@ class CDPUnpacker {
       `SELECT * FROM ${this.columns.values}`
     );
 
+    let missing = Array.from(this.map).map(([key, value]) => value);
+
     const temp = new Map<string, SignalData>();
 
     for (const entry of statement.iterate()) {
-      const time = entry.x_axis;
+      const time = entry.x_axis * 1000;
       const buffer: Buffer = entry.y_axis_data;
 
-      const id = Reader.compact(buffer)
+      const id = Reader.compact(buffer);
 
       const signal = this.map.get(id);
 
       if (signal == null) {
         throw new Error(`Signal with ID ${id} not found!`);
       }
+
+      missing = missing.filter((item) => item.name !== signal.name);
 
       const value = Reader.read(buffer, getTypeFromString(signal.type!), 3);
 
@@ -92,6 +127,10 @@ class CDPUnpacker {
       match.values.set(time, value);
       temp.set(signal.name, signal);
     }
+
+    this.keyframes(missing).forEach((value: any, key: any) =>
+      temp.set(key, value)
+    );
 
     this.connection.close();
 
@@ -116,7 +155,7 @@ class CDPUnpacker {
       .all()
       .sort();
 
-    return { min: collection.at(0), max: collection.at(-1) };
+    return { min: collection.at(0) * 1000, max: collection.at(-1) * 1000 };
   }
 
   public close() {
