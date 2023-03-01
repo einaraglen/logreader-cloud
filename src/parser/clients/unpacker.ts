@@ -47,7 +47,7 @@ class CDPUnpacker {
 
       const values = new Map(Object.entries(query));
 
-      const time: number = values.get("x_axis") as any;
+      const time: number = values.get("x_axis") as any * 1000;
 
       return new Map(
         missing.map((entry) => [

@@ -15,11 +15,11 @@ const run = () => {
 
   const data = parser.parse();
 
-    // console.log(data.get("MicroGridSTB_StartChargingOut"))
+    console.log(data.get("MicroGridSTB_StartChargingOut"))
 
-  data.forEach((signal) => {
-    console.log(signal.name, signal.values.size)
-  })
+//   data.forEach((signal) => {
+//     console.log(signal.name, signal.values.size)
+//   })
 
 
 };
