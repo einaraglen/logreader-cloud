@@ -1,26 +1,30 @@
 /* eslint no-unmodified-loop-condition: "off" */
-import CDPParser from "./parser/parser";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { Prisma } from "./services/prisma/client";
+import Log from "./models/Log";
+import Signal from "./models/Signal";
+import Value from "./models/Value";
+import CDPParser from "./parser/parser";
+import { Sequelize } from "./services/sequelize/client";
+import Writer from "./services/sequelize/writer";
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
 
-const run = () => {
-  Prisma();
+const run = async () => {
 
-  const parser = new CDPParser("./assets/split/SignalLog.db");
+  const parser = new CDPParser("./assets/split/SignalLog.db")
+  const data = parser.parse()
+  const range = parser.range()
 
-  const data = parser.parse();
+  Writer.insert(123, data, range)
 
-    console.log(data.get("MicroGridSTB_StartChargingOut"))
+  // const test = await Signal.findAll({ where: {
+  //   log_id: 17
+  // }})
 
-//   data.forEach((signal) => {
-//     console.log(signal.name, signal.values.size)
-//   })
-
+  // console.log(test)
 
 };
 

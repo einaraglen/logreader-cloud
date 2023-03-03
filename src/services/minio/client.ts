@@ -1,4 +1,5 @@
 import { Client, ClientOptions } from "minio";
+import Logger from "../output/logger";
 
 declare global {
   // allow global `var` declarations
@@ -19,7 +20,7 @@ export const Minio = () => {
     const client = new Client(options());
     global.minio = client;
   } catch (e) {
-    console.log("Could not connect to Minio..", e);
+    Logger.info("Could not connect to Minio..");
   }
 };
 

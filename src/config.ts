@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import * as path from "path";
+import Logger from "./services/output/logger";
 
 const variables: string[] = [
   "DATABASE_URL",
@@ -10,7 +11,7 @@ const variables: string[] = [
   "MINIO_SECRET_KEY"
 ];
 
-const config = async () => {
+const Config = async () => {
   await dotenv.config({
     path: path.resolve(process.cwd(), ".env"),
   });
@@ -18,7 +19,7 @@ const config = async () => {
   const failure = variables.reduce<boolean>(
     (res: boolean, curr: string) => {
       if (!process.env[curr]) {
-        console.log(`Missing required "${curr}" parameter`);
+        Logger.info(`Missing required "${curr}" parameter`);
         return true;
       }
       return res;
@@ -29,6 +30,8 @@ const config = async () => {
   if (failure) {
     process.exit(1);
   } 
+
+  Logger.info("Environment variables loaded successfully.")
 };
 
-export default config;
+export default Config;
