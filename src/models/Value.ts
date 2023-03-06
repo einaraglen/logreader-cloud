@@ -22,6 +22,7 @@ export const initValue = (sequelize: Sequelize) =>
       x_axis: {
         type: DataTypes.BIGINT,
         allowNull: false,
+        primaryKey: true,
       },
       y_axis: {
         type: DataTypes.DOUBLE,

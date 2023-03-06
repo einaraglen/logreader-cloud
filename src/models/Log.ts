@@ -3,8 +3,8 @@ import { DataTypes, InferAttributes, InferCreationAttributes, Model, Sequelize }
 class Log extends Model<InferAttributes<Log>, InferCreationAttributes<Log>> {
   declare id?: number;
   declare result_id: number;
-  declare from: Date;
-  declare to: Date;
+  declare from: number;
+  declare to: number;
 }
 
 export const initLog = (sequelize: Sequelize) => Log.init(
@@ -19,11 +19,11 @@ export const initLog = (sequelize: Sequelize) => Log.init(
       allowNull: false
     },
     from: {
-      type: DataTypes.DATE,
+      type: DataTypes.BIGINT,
       allowNull: false
     },
     to: {
-      type: DataTypes.DATE,
+      type: DataTypes.BIGINT,
       allowNull: false
     }
   },

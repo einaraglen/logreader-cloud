@@ -1,7 +1,7 @@
 import Log from "../../models/Log";
 import Signal from "../../models/Signal";
 import Value from "../../models/Value";
-import { Signal as SignalData } from "../../parser/types";
+import CDPParser from "../../parser/parser";
 import Logger from "../output/logger";
 
 export type ValueData = {
@@ -11,80 +11,55 @@ export type ValueData = {
 };
 
 class Writer {
-  private static CHUNK_SIZE: number = 1000;
+  public static async insert(result_id: number, parser: CDPParser) {
+    Logger.pending("Starting insert...");
 
-  public static async insert(
-    result_id: number,
-    data: Map<string, SignalData>,
-    range: { min: number; max: number }
-  ) {
-
-    Logger.pending("Starting insert...")
+    const { min, max } = parser.range();
 
     const log = await Log.create({
       result_id,
-      from: new Date(range.min),
-      to: new Date(range.max),
+      from: parseInt(min as any),
+      to: parseInt(max as any),
     });
 
-    Logger.info("Inserted Log")
+    Logger.info("Inserted Log");
 
-    const signals = await Signal.bulkCreate(this.signals(log, data));
+    const signals = await Signal.bulkCreate(this.signals(log, parser.map()));
 
-    Logger.info("Inserted Signals")
+    Logger.info("Inserted Signals");
 
     const map = new Map(
       signals.map((signal) => [signal.dataValues.name, signal.dataValues])
     );
 
-    await Promise.all(
-      this.chunks(map, data).map(async (chunk, index) => {
-        Value.bulkCreate(chunk);
-        Logger.info(`Inserted chunk ${index + 1}!`);
-      })
-    );
+    while (parser.stream().next()) {
+      const chunks = await parser.stream().read(map);
+      await Promise.all(
+        chunks.map(async (chunk, index) => {
+          await Value.bulkCreate(chunk, { ignoreDuplicates: true });
+          Logger.info(`Inserted chunk ${index + 1}`);
+        })
+      );
+    }
 
-    Logger.info("Inserted Values")
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
+    // parser.stream().cleanup();
+
+    Logger.info("Inserted Values");
   }
 
-  private static signals(log: Log, data: Map<string, SignalData>): any[] {
+  private static signals(log: Log, data: Map<string, any>) {
     return Array.from(data).map(([key, value]) => {
       const current = { ...value };
-      const size = current.values.size;
-      const times = Array.from(current.values.keys());
       delete (current as any).id;
-      delete (current as any).values;
       delete (current as any).type;
 
       return {
         ...current,
-        size,
         log_id: log.dataValues.id,
-        from: times.at(0) || -1,
-        to: times.at(-1) || -1,
       } as any;
     });
-  }
-
-  private static chunks(map: Map<string, any>, data: Map<string, SignalData>) {
-    const chunks: Value[][] = [];
-
-    data.forEach((signal, key) => {
-      const { id: signal_id } = map.get(signal.name)!;
-      const values = Array.from(signal.values).map(([x, y]) => ({
-        x_axis: x,
-        y_axis: y,
-        signal_id,
-      }));
-
-      for (let i = 0; i < values.length; i += this.CHUNK_SIZE) {
-        const chunk: any = values.slice(i, i + this.CHUNK_SIZE);
-        chunks.push(chunk);
-      }
-    });
-
-    return chunks;
   }
 }
 

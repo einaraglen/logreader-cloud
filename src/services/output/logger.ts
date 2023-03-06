@@ -29,7 +29,7 @@ export default class Logger {
         console.log("\x1b[1;34m%s\x1b[0m", `${this.time()} [Wait]:  `, message)
     }
 
-    public static error(message: string) {
-        console.log("\x1b[1;31m%s\x1b[0m", `${this.time()} [Error]: `, message)
+    public static error(message: string, error?: any) {
+        console.log("\x1b[1;31m%s\x1b[0m", `${this.time()} [Error]: `, message, error)
     }
 }   

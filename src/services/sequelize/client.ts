@@ -31,7 +31,7 @@ export const Sequelize = async () => {
   const client = new SequelizeClient(process.env.DATABASE_URL!, { logging: false });
   try {
     await client.authenticate();
-    Logger.info("Connection has been established successfully.");
+    Logger.info("Connected to Database successfully.");
 
     initModels(client)
 
@@ -40,7 +40,7 @@ export const Sequelize = async () => {
 
     global.sequelize = client;
   } catch (error) {
-    Logger.error("Unable to connect to the database.");
+    Logger.error("Unable to connect to the database: ", error);
   }
 
   return client

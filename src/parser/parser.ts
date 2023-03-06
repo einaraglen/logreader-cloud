@@ -1,34 +1,45 @@
 import Connection from "better-sqlite3";
 import CDPBasic from "./clients/basic";
 import CDPCompact from "./clients/compact";
+import CSVStream from "./clients/csv";
 import CDPSplit from "./clients/split";
-import { CDPDataStore, CDPInterface, Signal } from "./types";
+import { CDPDataStore, CDPInterface, SignalData } from "./types";
 
 class CDPParser implements CDPInterface {
   private client: CDPInterface;
+  private csv_stream: CSVStream
 
   constructor(file: string) {
+    this.csv_stream = new CSVStream();
     const type = this.getType(file);
 
     switch (type) {
       case CDPDataStore.Basic:
-        this.client = new CDPBasic(file);
+        this.client = new CDPBasic(file, this.csv_stream);
         break;
       case CDPDataStore.Compact:
-        this.client = new CDPCompact(file);
+        this.client = new CDPCompact(file, this.csv_stream);
         break;
       case CDPDataStore.Split:
-        this.client = new CDPSplit(file);
+        this.client = new CDPSplit(file, this.csv_stream);
         break;
     }
   }
 
-  public parse(): Map<string, Signal> {
-    return this.client.parse();
+  public parse() {
+    this.client.parse();
   }
 
   public range(): { min: number, max: number } {
     return this.client.range();
+  }
+
+  public map(): Map<string, SignalData> {
+    return this.client.map()
+  }
+
+  public stream() {
+    return this.csv_stream
   }
 
   private getType = (file: string) => {

@@ -1,30 +1,20 @@
 /* eslint no-unmodified-loop-condition: "off" */
-import dayjs from "dayjs";
-import duration from "dayjs/plugin/duration";
-import relativeTime from "dayjs/plugin/relativeTime";
-import Log from "./models/Log";
-import Signal from "./models/Signal";
-import Value from "./models/Value";
 import CDPParser from "./parser/parser";
-import { Sequelize } from "./services/sequelize/client";
 import Writer from "./services/sequelize/writer";
-
-dayjs.extend(duration);
-dayjs.extend(relativeTime);
+import Downloader from "./services/minio/downloader";
 
 const run = async () => {
 
-  const parser = new CDPParser("./assets/split/SignalLog.db")
-  const data = parser.parse()
-  const range = parser.range()
+  const downloader = new Downloader('plugin/2c42796c-29b4-4496-9dd7-a490f9853a0d.zip')
 
-  Writer.insert(123, data, range)
+  const directory = await downloader.download()
 
-  // const test = await Signal.findAll({ where: {
-  //   log_id: 17
-  // }})
+  const parser = new CDPParser(`${directory}/SignalLog.db`)
 
-  // console.log(test)
+  parser.parse()
+
+  Writer.insert(123, parser)
+
 
 };
 

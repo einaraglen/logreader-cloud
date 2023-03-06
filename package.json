@@ -16,20 +16,20 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^4.11.0",
     "axios": "^0.27.2",
     "better-sqlite3": "^8.1.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.7",
     "dotenv": "^16.0.3",
-    "endianness": "^8.0.2",
     "express": "^4.18.1",
+    "fast-csv": "^4.3.6",
     "minio": "^7.0.32",
     "pg": "^8.9.0",
     "pg-hstore": "^2.3.4",
-    "prisma": "^4.11.0",
     "sequelize": "^6.29.0",
-    "sequelize-cli": "^6.6.0"
+    "sequelize-cli": "^6.6.0",
+    "unzipper": "^0.10.11",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.3",
@@ -38,6 +38,8 @@
     "@types/jsonwebtoken": "^8.5.9",
     "@types/minio": "^7.0.17",
     "@types/node": "^18.7.18",
+    "@types/unzipper": "^0.10.5",
+    "@types/uuid": "^9.0.1",
     "concurrently": "^7.4.0",
     "nodemon": "^2.0.20",
     "typescript": "^4.8.3"

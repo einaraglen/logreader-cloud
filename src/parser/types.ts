@@ -5,8 +5,9 @@ export enum CDPDataStore {
 }
 
 export interface CDPInterface {
-  parse: () => any;
+  parse: () => void;
   range: () => any;
+  map: () => Map<string, SignalData>
 }
 
 export type CompactTables = {
@@ -20,14 +21,8 @@ export type SignalData = {
   name: string;
   path?: string;
   type?: string;
-  values: Map<number, any>;
 };
 
-export type Signal = {
-  name: string;
-  path?: string;
-  values: Map<number, any>;
-};
 
 export enum CDPDataTypes {
   UNDEFINED,

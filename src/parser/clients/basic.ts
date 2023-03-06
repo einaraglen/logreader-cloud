@@ -1,10 +1,14 @@
 import Connection from "better-sqlite3";
 import { CDPInterface, SignalData } from "../types";
+import CSVStream from "./csv";
 
 class CDPBasic implements CDPInterface {
   private connection: Connection.Database;
+  private stream: CSVStream;
+  private connections: Map<string, SignalData> = new Map()
 
-  constructor(file: string) {
+  constructor(file: string, stream: CSVStream) {
+    this.stream = stream
     this.connection = new Connection(file, {
       readonly: true,
       fileMustExist: true,
@@ -14,8 +18,6 @@ class CDPBasic implements CDPInterface {
   public parse() {
     const statement = this.connection.prepare(`SELECT * FROM SQLSignalLogger`);
 
-    const values: Map<any, SignalData> = new Map();
-
     for (const row of statement.iterate()) {
       const time = row.timestamp;
       const map = new Map(Object.entries(row));
@@ -23,14 +25,15 @@ class CDPBasic implements CDPInterface {
       map.delete("id");
       map.delete("timestamp");
 
+      if (this.connections.size == 0) {
+        this.connections = new Map(Array.from(map).map(([key, value]) => [key, { name: key }]))
+      }
+
       for (const [key, value] of map) {
-        const previous = values.get(key) || { name: key, values: new Map() };
-        previous.values.set(parseFloat(time)  * 1000, parseFloat(value as any));
-        values.set(key, previous);
+        this.stream.write({ name: key, time: parseFloat(time) * 1000, value });
       }
     }
-
-    return values;
+    this.stream.close()
   }
 
   public range() {
@@ -44,6 +47,10 @@ class CDPBasic implements CDPInterface {
       min: parseFloat(collection.at(0)) * 1000,
       max: parseFloat(collection.at(-1)) * 1000,
     };
+  }
+
+  public map() {
+    return this.connections;
   }
 }
 

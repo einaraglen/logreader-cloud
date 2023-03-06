@@ -7,10 +7,11 @@ import {
 } from "../types";
 import Connection from "better-sqlite3";
 import Reader from "./reader";
+import CSVStream from "./csv";
 
 class CDPUnpacker {
   private type: CDPDataStore;
-  private map: Map<number, SignalData> = new Map();
+  private connections: Map<number, SignalData> = new Map();
   private connection: Connection.Database;
   private columns: CompactTables;
 
@@ -25,18 +26,12 @@ class CDPUnpacker {
     this.init();
   }
 
-  public setMap(map: Map<number, SignalData>) {
-    this.map = map;
-  }
-
   private init() {
     const collection: SignalData[] = this.connection
       .prepare(`SELECT * FROM ${this.columns.map}`)
       .all();
 
-    this.map = new Map(
-      collection.map((item) => [item.id!, { ...item, values: new Map() }])
-    );
+    this.connections = new Map(collection.map((item) => [item.id!, item]));
   }
 
   private keyframes(missing: SignalData[]) {
@@ -47,14 +42,14 @@ class CDPUnpacker {
 
       const values = new Map(Object.entries(query));
 
-      const time: number = values.get("x_axis") as any * 1000;
+      const time: number = (values.get("x_axis") as any) * 1000;
 
       return new Map(
         missing.map((entry) => [
           entry.name,
           {
-            ...entry,
-            values: new Map([[time, values.get(`${entry.name}Last`)]]),
+            time,
+            value: values.get(`${entry.name}Last`),
           },
         ])
       );
@@ -63,12 +58,12 @@ class CDPUnpacker {
     }
   }
 
-  private parseSplit(map?: Map<number, SignalData>) {
+  private parseSplit(stream: CSVStream) {
     const statement = this.connection.prepare(
       `SELECT * FROM ${this.columns.values}`
     );
 
-    let missing = Array.from(this.map).map(([key, value]) => value);
+    let missing = Array.from(this.connections).map(([key, value]) => value);
 
     for (const entry of statement.iterate()) {
       const time = entry.x_axis * 1000;
@@ -76,7 +71,7 @@ class CDPUnpacker {
 
       const { id, value } = Reader.split(buffer);
 
-      const signal = (map || this.map).get(id);
+      const signal = this.connections.get(id);
 
       if (signal == null) {
         throw new Error(`Signal with ID ${id} not found!`);
@@ -84,25 +79,22 @@ class CDPUnpacker {
 
       missing = missing.filter((item) => item.name !== signal.name);
 
-      signal.values.set(time, value);
-      (map || this.map).set(id, signal);
+      stream.write({ name: signal.name, time, value });
     }
 
-    this.keyframes(missing).forEach((value: any, key: any) =>
-      (map || this.map).set(key, value)
+    this.keyframes(missing).forEach(({ time, value }: any, key: any) =>
+      stream.write({ name: key, time, value })
     );
 
     this.connection.close();
-
-    return map || this.map;
   }
 
-  private parseCompact() {
+  private parseCompact(stream: CSVStream) {
     const statement = this.connection.prepare(
       `SELECT * FROM ${this.columns.values}`
     );
 
-    let missing = Array.from(this.map).map(([key, value]) => value);
+    let missing = Array.from(this.connections).map(([key, value]) => value);
 
     const temp = new Map<string, SignalData>();
 
@@ -112,7 +104,7 @@ class CDPUnpacker {
 
       const id = Reader.compact(buffer);
 
-      const signal = this.map.get(id);
+      const signal = this.connections.get(id);
 
       if (signal == null) {
         throw new Error(`Signal with ID ${id} not found!`);
@@ -122,27 +114,24 @@ class CDPUnpacker {
 
       const value = Reader.read(buffer, getTypeFromString(signal.type!), 3);
 
-      const match = temp.get(signal.name) || { ...signal };
-
-      match.values.set(time, value);
-      temp.set(signal.name, signal);
+      stream.write({ name: signal.name, time, value });
     }
 
-    this.keyframes(missing).forEach((value: any, key: any) =>
-      temp.set(key, value)
+    this.keyframes(missing).forEach(({ time, value }: any, key: any) =>
+      stream.write({ name: key, time, value })
     );
 
     this.connection.close();
-
-    return temp;
   }
 
-  public parse(map?: Map<number, SignalData>) {
+  public parse(stream: CSVStream) {
     switch (this.type) {
       case CDPDataStore.Compact:
-        return this.parseCompact();
+        this.parseCompact(stream);
+        break;
       case CDPDataStore.Split:
-        return this.parseSplit(map);
+        this.parseSplit(stream);
+        break;
       default:
         throw new Error("Unsupported CDPDataStore type for unpacker");
     }
@@ -156,6 +145,12 @@ class CDPUnpacker {
       .sort();
 
     return { min: collection.at(0) * 1000, max: collection.at(-1) * 1000 };
+  }
+
+  public map() {
+    return new Map(
+      Array.from(this.connections).map(([key, value]) => [value.name, value])
+    );
   }
 
   public close() {

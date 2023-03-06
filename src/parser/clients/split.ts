@@ -3,13 +3,16 @@ import { CDPDataStore, CDPInterface, SignalData } from "../types";
 import path from "path";
 import fs from "fs";
 import CDPUnpacker from "./unpacker";
+import CSVStream from "./csv";
 
 class CDPSplit implements CDPInterface {
   private file: string;
-  private map?: Map<number, SignalData>;
   private files: Set<string> = new Set();
+  private stream: CSVStream
+  private connections: Map<string, SignalData> = new Map();
 
-  constructor(file: string) {
+  constructor(file: string, stream: CSVStream) {
+    this.stream = stream;
     this.file = file;
     this.init();
   }
@@ -26,10 +29,6 @@ class CDPSplit implements CDPInterface {
     connection.close();
 
     this.files = new Set(collection.map((row) => row.connection));
-
-    this.map = new Map(
-      collection.map((item) => [item.id, { ...item, values: new Map() }])
-    );
   }
 
   private getConnectionsFromDir() {
@@ -48,16 +47,14 @@ class CDPSplit implements CDPInterface {
   }
 
   public parse() {
-    const temp = new Map();
-
     this.files.forEach((index) => {
       const file = path.join(path.dirname(this.file), `SignalLog${index}.db`);
       const unpacker = new CDPUnpacker(file, CDPDataStore.Split);
-      const unpacked: any = unpacker.parse(this.map);
-      unpacked.forEach((value: any, key: any) => temp.set(value.name, value));
+      unpacker.parse(this.stream);
+      unpacker.map().forEach((value, key) => {
+        this.connections.set(key, value)
+      })
     });
-
-    return temp;
   }
 
   public range() {
@@ -83,6 +80,10 @@ class CDPSplit implements CDPInterface {
       min: sorted.at(0),
       max: sorted.at(-1),
     };
+  }
+
+  public map() {
+    return this.connections
   }
 }
 
