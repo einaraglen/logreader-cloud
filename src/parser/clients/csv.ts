@@ -90,16 +90,13 @@ class CSVStream {
     });
   }
 
-  private batches(): number {
-    const directory = `${this.TEMP_DIRECTORY}/${this.WORK_DIRECTORY}`;
-    const files = fs.readdirSync(directory).filter((file) => /\d/.test(file));
-    const cleaned = files.map((file) => parseInt(file.replace(/\D/g, "")));
-    return cleaned.sort().at(-1) || -1
+  public progress() {
+    return this.READ_BATCH / (this.WRITE_BATCH - 1)
   }
 
   public next() {
     this.READ_BATCH++;
-    return this.READ_BATCH <= this.WRITE_BATCH -1;
+    return this.READ_BATCH <= this.WRITE_BATCH - 1;
   }
 
   public close() {

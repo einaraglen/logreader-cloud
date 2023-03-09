@@ -24,18 +24,14 @@ export const initSignal = (sequelize: Sequelize) => Signal.init(
     },
     log_id: {
       type: DataTypes.INTEGER,
-      onDelete: "CASCADE",
-      references: {
-          key: "id",
-          model: Log,
-      }
+      allowNull: false,
+      primaryKey: true,
     }
   },
   {
     sequelize,
     modelName: "signal",
     timestamps: false,
-    indexes: [{ unique: true, fields: ["id", "log_id"] }],
   }
 );
 

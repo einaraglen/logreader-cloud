@@ -12,41 +12,46 @@ export type ValueData = {
 
 class Writer {
   public static async insert(result_id: number, parser: CDPParser) {
+    parser.parse()
+    
     Logger.pending("Starting insert...");
 
-    const { min, max } = parser.range();
+      const { min, max } = parser.range();
 
-    const log = await Log.create({
-      result_id,
-      from: parseInt(min as any),
-      to: parseInt(max as any),
-    });
+      const log = await Log.create(
+        {
+          result_id,
+          from: parseInt(min as any),
+          to: parseInt(max as any),
+        } );
 
-    Logger.info("Inserted Log");
+      Logger.info("Inserted Log");
 
-    const signals = await Signal.bulkCreate(this.signals(log, parser.map()));
+      const signals = await Signal.bulkCreate(this.signals(log, parser.map()));
 
-    Logger.info("Inserted Signals");
+      Logger.info("Inserted Signals");
 
-    const map = new Map(
-      signals.map((signal) => [signal.dataValues.name, signal.dataValues])
-    );
-
-    while (parser.stream().next()) {
-      const chunks = await parser.stream().read(map);
-      await Promise.all(
-        chunks.map(async (chunk, index) => {
-          await Value.bulkCreate(chunk, { ignoreDuplicates: true });
-          Logger.info(`Inserted chunk ${index + 1}`);
-        })
+      const map = new Map(
+        signals.map((signal) => [signal.dataValues.name, signal.dataValues])
       );
-    }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      while (parser.stream().next()) {
+        const chunks = await parser.stream().read(map);
+        await Promise.all(
+          chunks.map(async (chunk, index) => {
+            await Value.bulkCreate(chunk, {
+              ignoreDuplicates: true,
+            });
+          })
+        );
+        Logger.info(`Value insert progress: ${(parser.stream().progress() * 100).toFixed(2)}%`)
+      }
 
-    // parser.stream().cleanup();
+      parser.stream().close();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      parser.stream().cleanup();
 
-    Logger.info("Inserted Values");
+      Logger.info("Inserted Values");
   }
 
   private static signals(log: Log, data: Map<string, any>) {
@@ -57,7 +62,7 @@ class Writer {
 
       return {
         ...current,
-        log_id: log.dataValues.id,
+        log_id: log.dataValues.id!,
       } as any;
     });
   }

@@ -11,37 +11,64 @@ declare global {
 }
 
 const initHypertable = async (sequelize: SequelizeClient) => {
-  await sequelize.query('CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;', { logging: false })
-  await sequelize.query('SELECT create_hypertable(\'"values"\', \'x_axis\', if_not_exists => TRUE, migrate_data => TRUE, chunk_time_interval => 300000);', {
-    logging: false
-  })
+  await sequelize.query("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;", {
+    logging: false,
+  });
+  await sequelize.query(
+    "SELECT create_hypertable('values', 'x_axis', if_not_exists => TRUE, migrate_data => TRUE, chunk_time_interval => 300000);",
+    {
+      logging: false,
+    }
+  );
 
-  Logger.info("Hypertable setup completed successfully.")
-}
+  Logger.info("Hypertable setup completed successfully.");
+};
 
 const initModels = (sequelize: SequelizeClient) => {
-  initLog(sequelize)
-  initSignal(sequelize)
-  initValue(sequelize)
+  initLog(sequelize);
+  initSignal(sequelize);
+  initValue(sequelize);
 
-  Logger.info("Model setup completed successfully.")
-}
+  Log.hasMany(Signal, {
+    foreignKey: "log_id",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Signal.belongsTo(Log, { targetKey: "id", foreignKey: "log_id" });
+
+  Signal.hasMany(Value, {
+    foreignKey: "signal_id",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Value.belongsTo(Signal, { targetKey: "id", foreignKey: "signal_id" });
+
+  Logger.info("Model setup completed successfully.");
+};
 
 export const Sequelize = async () => {
-  const client = new SequelizeClient(process.env.DATABASE_URL!, { logging: false });
+  const client = new SequelizeClient(process.env.DATABASE_URL!, {
+    pool: {
+      max: 20,
+      min: 10,
+      acquire: 30000,
+      idle: 10000,
+    },
+    logging: false,
+  });
   try {
     await client.authenticate();
     Logger.info("Connected to Database successfully.");
 
-    initModels(client)
+    initModels(client);
 
-    await client.sync({ alter: true, logging: false })
-    await initHypertable(client)
+    await client.sync({ alter: true, logging: false });
+    await initHypertable(client);
 
     global.sequelize = client;
   } catch (error) {
-    Logger.error("Unable to connect to the database: ", error);
+    Logger.error("Unable to complete database initialization: ", error);
   }
 
-  return client
+  return client;
 };

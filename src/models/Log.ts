@@ -30,10 +30,7 @@ export const initLog = (sequelize: Sequelize) => Log.init(
   {
     sequelize,
     modelName: "log",
-    timestamps: true,
-    createdAt: "created_at",
-    updatedAt: false,
-    indexes: [{ unique: true, fields: ['id'] }]
+    timestamps: false,
   }
 );
 

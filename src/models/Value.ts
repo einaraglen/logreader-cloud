@@ -5,7 +5,6 @@ import {
   Model,
   Sequelize,
 } from "sequelize";
-import Signal from "./Signal";
 
 class Value extends Model<
   InferAttributes<Value>,
@@ -30,18 +29,14 @@ export const initValue = (sequelize: Sequelize) =>
       },
       signal_id: {
         type: DataTypes.INTEGER,
-        onDelete: "CASCADE",
-        references: {
-          key: "id",
-          model: Signal,
-        },
-      },
+        allowNull: false,
+        primaryKey: true,
+      }
     },
     {
       sequelize,
       modelName: "value",
       timestamps: false,
-      indexes: [{ unique: true, fields: ["x_axis", "signal_id"] }],
     }
   );
 
