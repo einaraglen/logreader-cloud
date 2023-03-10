@@ -3,6 +3,7 @@ import { DataTypes, InferAttributes, InferCreationAttributes, Model, Sequelize }
 class Log extends Model<InferAttributes<Log>, InferCreationAttributes<Log>> {
   declare id?: number;
   declare result_id: number;
+  declare system_id: string
   declare from: number;
   declare to: number;
 }
@@ -13,6 +14,10 @@ export const initLog = (sequelize: Sequelize) => Log.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    system_id: {
+      type: DataTypes.UUID,
+      allowNull: false
     },
     result_id: {
       type: DataTypes.INTEGER,

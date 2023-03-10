@@ -15,7 +15,7 @@ export type ReadRow = {
   };
 
 class CSVStream {
-  private BATCH_SIZE: number = 100000;
+  private BATCH_SIZE: number = 500000;
   private CHUNK_SIZE: number = 1000;
   private TEMP_DIRECTORY: string = "./temp/batches";
   private WORK_DIRECTORY: string;

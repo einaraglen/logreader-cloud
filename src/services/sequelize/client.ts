@@ -15,7 +15,7 @@ const initHypertable = async (sequelize: SequelizeClient) => {
     logging: false,
   });
   await sequelize.query(
-    "SELECT create_hypertable('values', 'x_axis', if_not_exists => TRUE, migrate_data => TRUE, chunk_time_interval => 300000);",
+    "SELECT create_hypertable('values', 'x_axis', if_not_exists => TRUE, chunk_time_interval => 300000);",
     {
       logging: false,
     }
@@ -48,12 +48,6 @@ const initModels = (sequelize: SequelizeClient) => {
 
 export const Sequelize = async () => {
   const client = new SequelizeClient(process.env.DATABASE_URL!, {
-    pool: {
-      max: 20,
-      min: 10,
-      acquire: 30000,
-      idle: 10000,
-    },
     logging: false,
   });
   try {
@@ -69,6 +63,4 @@ export const Sequelize = async () => {
   } catch (error) {
     Logger.error("Unable to complete database initialization: ", error);
   }
-
-  return client;
 };

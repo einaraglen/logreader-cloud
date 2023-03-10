@@ -5,6 +5,9 @@ class Signal extends Model<InferAttributes<Signal>, InferCreationAttributes<Sign
   declare id?: number;
   declare name: string;
   declare path?: string;
+  declare size?: number;
+  declare from?: number;
+  declare to?: number;
   declare log_id: number
 }
 
@@ -21,11 +24,23 @@ export const initSignal = (sequelize: Sequelize) => Signal.init(
     },
     path: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    size: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    from: {
+      type: DataTypes.BIGINT,
+      allowNull: true
+    },
+    to: {
+      type: DataTypes.BIGINT,
+      allowNull: true
     },
     log_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true,
     }
   },
   {
