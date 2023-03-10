@@ -9,6 +9,7 @@ import Log from "./models/Log";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs"
 import PathBuilder from "./services/path/builder";
+import Logger from "./services/output/logger";
 
 const run = async () => {
   // const downloader = new Downloader(
@@ -23,7 +24,7 @@ const run = async () => {
 
   // downloader.cleanup();
 
-  console.log("Starting query");
+  Logger.pending("Starting query");
 
   const start = performance.now();
 
@@ -37,7 +38,7 @@ const run = async () => {
 
   const end = performance.now();
 
-  console.log("Used", end - start, "millieseconds to query signals + build path");
+  Logger.info("Used", (end - start), "millieseconds to query signals + build path");
 
 
 };
