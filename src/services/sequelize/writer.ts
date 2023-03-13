@@ -110,14 +110,15 @@ class Writer {
           attributes: [],
         },
       ],
+      raw: true,
       group: ["signal.id"],
     });
 
     const promises = signals.map(async(signal) => {
       await signal.update({
-        size: parseInt(signal.dataValues.size as any),
-        from: parseInt(signal.dataValues.from as any),
-        to: parseInt(signal.dataValues.to as any),
+        size: parseInt(signal.size as any),
+        from: parseInt(signal.from as any),
+        to: parseInt(signal.to as any),
       })
     });
 

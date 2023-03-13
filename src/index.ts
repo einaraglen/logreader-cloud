@@ -7,8 +7,8 @@ import { Sequelize } from './services/sequelize/client'
 (async () => {
   Logger.pending("Starting server...")
   await Config()
-  await Sequelize()
-  Minio()
-  Logger.info("Server Ready!")
+  // await Sequelize()
+  // Minio()
+  // Logger.info("Server Ready!")
   run()
 })()

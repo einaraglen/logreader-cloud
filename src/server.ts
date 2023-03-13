@@ -1,46 +1,30 @@
 /* eslint no-unmodified-loop-condition: "off" */
-import CDPParser from "./parser/parser";
-import Writer from "./services/sequelize/writer";
-import Downloader from "./services/minio/downloader";
-import Signal from "./models/Signal";
-import { Op, Sequelize } from "sequelize";
-import Value from "./models/Value";
-import Log from "./models/Log";
-import { v4 as uuidv4 } from "uuid";
-import fs from "fs"
-import PathBuilder from "./services/path/builder";
 import Logger from "./services/output/logger";
+import express, { Express } from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { route_options, websocket_options } from "./services/cors/options";
+import cors from "cors";
+import { version } from "../package.json";
+import websocket from "./websocket/routes";
 
-const run = async () => {
-  // const downloader = new Downloader(
-  //   "plugin/fbfb4cbf-74ed-4007-8322-20b9475cfbc8.zip"
-  // );
+const run = () => {
+  const PORT = process.env.PORT || 8080;
 
-  // const directory = await downloader.download();
+  const app: Express = express();
+  const server = createServer(app);
+  const io = new Server(server, websocket_options);
 
-  // const parser = new CDPParser(`${directory}/SignalLog.db`);
+  app.use(express.json());
+  app.use(cors(route_options));
 
-  // await Writer.insert({ system_id: uuidv4(), result_id: 123, parser });
+  app.get("/", (req, res) => res.send(`logreader-cloud v${version}`));
 
-  // downloader.cleanup();
+  server.listen(PORT, () =>
+    Logger.info(`logreader-cloud v${version} listening to port: ${PORT}`)
+  );
 
-  Logger.pending("Starting query");
-
-  const start = performance.now();
-
-  const signals = await Signal.findAll({
-    where: {
-      log_id: 1
-    },
-  });
-
-  const struct = PathBuilder.build(signals)
-
-  const end = performance.now();
-
-  Logger.info("Used", (end - start), "millieseconds to query signals + build path");
-
-
+  websocket(io);
 };
 
 export default run;
