@@ -10,6 +10,8 @@ import websocket from "./websocket/routes";
 import { wipe } from "./services/sequelize/client";
 import Log from "./models/Log";
 import Signal from "./models/Signal";
+import Value from "./models/Value";
+import { Op } from "sequelize";
 
 const run = () => {
   const PORT = process.env.PORT || 8080;
@@ -30,7 +32,17 @@ const run = () => {
   websocket(io);
 
   // Log.findAll().then((res) => console.log(res))
-  Signal.findAll({ where: { log_id: 1 }, raw: true }).then((res) => console.log(res))
+  // Signal.findAll({ where: { log_id: 1 }, raw: true }).then((res) => console.log(res))
+  Value.findAll({
+    where: {
+      signal_id: 106,
+      x_axis: {
+        [Op.gt]: 1677253502588,
+        [Op.lt]: 1677256636088
+      }
+    },
+    raw: true
+  }).then((res) => console.log(res))
   // wipe()
 };
 
