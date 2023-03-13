@@ -1,10 +1,10 @@
 import { Server } from "socket.io"
-import progress from "./progress";
+import log from "./log";
 import stream from "./stream";
 
 const websocket = (io: Server<any>) => {
     io.of("/stream").on("connection", stream);
-    io.of("/progress").on("connection", progress);
+    io.of("/log").on("connection", log);
 };
 
 export default websocket;

@@ -4,8 +4,9 @@ class Log extends Model<InferAttributes<Log>, InferCreationAttributes<Log>> {
   declare id?: number;
   declare result_id: number;
   declare system_id: string
-  declare from: number;
-  declare to: number;
+  declare from?: number;
+  declare to?: number;
+  declare state: string
 }
 
 export const initLog = (sequelize: Sequelize) => Log.init(
@@ -25,10 +26,15 @@ export const initLog = (sequelize: Sequelize) => Log.init(
     },
     from: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     to: {
       type: DataTypes.BIGINT,
+      allowNull: true
+    },
+    state: {
+      defaultValue: "COMPLETED",
+      type: DataTypes.STRING,
       allowNull: false
     }
   },

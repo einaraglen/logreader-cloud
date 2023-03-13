@@ -7,6 +7,8 @@ import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import relative from "dayjs/plugin/relativeTime";
 import { Sequelize } from "sequelize";
+import { EventEmitter } from "events";
+import Downloader from "../minio/downloader";
 
 dayjs.extend(duration);
 dayjs.extend(relative);
@@ -21,78 +23,94 @@ export type InsertProps = {
   system_id: string;
   result_id: number;
   parser: CDPParser;
+  listener: any;
+  downloader: Downloader;
+};
+
+export type WriterProps = {
+  listener: any;
+  system_id: string;
+  result_id: number;
+  file: string;
 };
 
 class Writer {
-  public static async insert({ system_id, result_id, parser }: InsertProps) {
-    parser.parse();
+  private log?: Log;
+  private listener: any;
+  private file: string;
+  private downloader?: Downloader;
+  private parser?: CDPParser;
+  private directory?: string;
 
-    const { min, max } = parser.range();
-
-    const duration = dayjs(min).from(dayjs(max), true);
-
-    Logger.info(`Found Log of duration: ${duration}`);
-
-    Logger.pending("Starting insert...");
-
-    const log = await Log.create({
+  constructor({ listener, result_id, system_id, file }: WriterProps) {
+    this.file = file;
+    this.listener = listener;
+    Log.create({
       result_id,
       system_id,
-      from: parseInt(min as any),
-      to: parseInt(max as any),
-    });
-
-    Logger.info("Inserted Log");
-
-    const signals = await Signal.bulkCreate(this.signals(log, parser.map()));
-
-    Logger.info("Inserted Signals");
-
-    const map = new Map(
-      signals.map((signal) => [signal.dataValues.name, signal.dataValues])
-    );
-
-    const start = performance.now();
-
-    while (parser.stream().next()) {
-      const chunks = await parser.stream().read(map);
-      await Promise.all(
-        chunks.map(async (chunk, index) => {
-          await Value.bulkCreate(chunk, {
-            ignoreDuplicates: true,
-          });
-        })
-      );
-
-      Logger.info(
-        `Value insert progress: ${(parser.stream().progress() * 100).toFixed(
-          2
-        )}%`
-      );
-    }
-
-    const end = performance.now();
-
-    console.log(
-      "Used",
-      dayjs(start).from(dayjs(end), true),
-      "to bulk insert values"
-    );
-
-    parser.stream().close();
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    parser.stream().cleanup();
-
-    Logger.info("Inserted Values");
-
-    Logger.pending("Aggregating Values...");
-
-    await this.aggregate(log.dataValues.id!);
-
-    Logger.info("Aggregated Values!");
+      state: "WAITING",
+    }).then((res) => (this.log = res));
   }
 
-  public static async aggregate(log_id: number) {
+  public async insert() {
+    try {
+      await this.download();
+
+      const { min, max } = this.parse();
+
+      this.listener.postMessage("INSERTING");
+
+      await this.log?.update({ from: parseInt(min as any), to: parseInt(max as any), state: "INSERTING" });
+
+      const signals = await this.insertSignals();
+
+      await this.insertValues(signals);
+
+      await this.aggregate(this.log!.dataValues.id!);
+
+      this.listener.postMessage("COMPLETED");
+
+      await this.log?.update({ state: "COMPLETED" });
+    } catch (e) {
+      Logger.error("Failed insert", e)
+      this.rollback();
+    } finally {
+      this.cleanup();
+    }
+  }
+
+  private async rollback() {
+    if (this.log != null) {
+      await this.log.destroy();
+    }
+  }
+
+  private cleanup() {
+    if (this.parser != null) {
+      this.parser.stream().cleanup();
+    }
+
+    if (this.downloader != null) {
+      this.downloader.cleanup();
+    }
+  }
+
+  private parse() {
+    this.parser = new CDPParser(
+      `${this.directory}/SignalLog.db`,
+      this.listener
+    );
+    this.parser.parse();
+
+    return this.parser.range();
+  }
+
+  private async download() {
+    const downloader = new Downloader(this.file, this.listener);
+    this.directory = await downloader.download();
+  }
+
+  private async aggregate(log_id: number) {
     const signals = await Signal.findAll({
       where: {
         log_id,
@@ -110,22 +128,50 @@ class Writer {
           attributes: [],
         },
       ],
-      raw: true,
       group: ["signal.id"],
     });
 
-    const promises = signals.map(async(signal) => {
+    const promises = signals.map(async (signal) => {
       await signal.update({
-        size: parseInt(signal.size as any),
-        from: parseInt(signal.from as any),
-        to: parseInt(signal.to as any),
-      })
+        size: parseInt(signal.dataValues.size as any),
+        from: parseInt(signal.dataValues.from as any),
+        to: parseInt(signal.dataValues.to as any),
+      });
     });
 
-    return await Promise.all(promises)
+    return await Promise.all(promises);
   }
 
-  private static signals(log: Log, data: Map<string, any>) {
+  private async insertValues(signals: Map<string, any>) {
+    while (this.parser!.stream().next()) {
+      const chunks = await this.parser!.stream().read(signals);
+      await Promise.all(
+        chunks.map(async (chunk, index) => {
+          await Value.bulkCreate(chunk, {
+            ignoreDuplicates: true,
+          });
+        })
+      );
+
+      const progress = (this.parser!.stream().progress() * 100).toFixed(2);
+      this.log?.update({ state: progress.toString() });
+      this.listener.postMessage(progress);
+    }
+
+    this.parser!.stream().close();
+  }
+
+  private async insertSignals() {
+    const signals = await Signal.bulkCreate(
+      this.getSignals(this.log!, this.parser!.map())
+    );
+
+    return new Map(
+      signals.map((signal) => [signal.dataValues.name, signal.dataValues])
+    );
+  }
+
+  private getSignals(log: Log, data: Map<string, any>) {
     return Array.from(data).map(([key, value]) => {
       const current = { ...value };
       delete (current as any).id;

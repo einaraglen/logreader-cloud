@@ -19,7 +19,6 @@ export const Minio = () => {
   try {
     const client = new Client(options());
     global.minio = client;
-    Logger.info("Connected to Minio S3 successfully.");
   } catch (e) {
     Logger.info("Could not connect to Minio..");
   }

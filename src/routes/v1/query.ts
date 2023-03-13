@@ -9,3 +9,5 @@ route.post("/", async (req, res) => {
         
     }
 })
+
+export default route;

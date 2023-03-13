@@ -30,8 +30,6 @@ const Config = async () => {
   if (failure) {
     process.exit(1);
   } 
-
-  Logger.info("Environment variables loaded successfully.")
 };
 
 export default Config;

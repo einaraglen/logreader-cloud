@@ -6,15 +6,11 @@ const stream = async (socket: Socket) => {
     // system context for current socket
     const uuid: string = socket.handshake.query.uuid! as string;
 
-    socket.on("request", (message: string) => {
-      Logger.info("Test");
+    socket.on("message", (message: string) => {
+      Logger.info(message);
+      socket.emit("message", JSON.stringify({ test: 123 }));
     });
 
-    socket.on("abort", (message: string) => {
-      Logger.info("Test");
-    });
-
-    socket.emit("message", JSON.stringify({ test: 123 }));
     socket.on("disconnect", () => Logger.info());
   } catch (e) {
     Logger.error(`Failure to emit heartbeat`, e);

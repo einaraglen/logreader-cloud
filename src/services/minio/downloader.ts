@@ -7,10 +7,12 @@ class Downloader {
   private TEMP_DIRECTORY: string = "./temp/downloads";
   private FILE_NAME: string = "logs";
   private file: string;
+  private listener: any
 
   private directory?: string;
 
-  constructor(file: string) {
+  constructor(file: string, listener: any) {
+    this.listener = listener
     this.file = file;
   }
 
@@ -38,7 +40,7 @@ class Downloader {
         `${this.TEMP_DIRECTORY}/${directory}/${this.FILE_NAME}.zip`
       );
 
-      Logger.pending("Starting download of log archive...");
+      this.listener.postMessage("DOWNLOADING")
 
       minio.getObject(process.env.MINIO_BUCKET!, file, (err, input) => {
         if (err) {
@@ -46,7 +48,6 @@ class Downloader {
         }
         input.on("data", (chunk) => output.write(chunk));
         input.on("end", () => {
-          Logger.info("Download complete!");
           output.close();
           this.directory = directory;
           resolve(directory);

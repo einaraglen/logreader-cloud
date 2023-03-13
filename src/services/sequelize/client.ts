@@ -20,8 +20,6 @@ const initHypertable = async (sequelize: SequelizeClient) => {
       logging: false,
     }
   );
-
-  Logger.info("Hypertable setup completed successfully.");
 };
 
 const initModels = (sequelize: SequelizeClient) => {
@@ -42,8 +40,6 @@ const initModels = (sequelize: SequelizeClient) => {
     hooks: true,
   });
   Value.belongsTo(Signal, { targetKey: "id", foreignKey: "signal_id" });
-
-  Logger.info("Model setup completed successfully.");
 };
 
 export const Sequelize = async () => {
@@ -52,8 +48,6 @@ export const Sequelize = async () => {
   });
   try {
     await client.authenticate();
-    Logger.info("Connected to Database successfully.");
-
     initModels(client);
 
     await client.sync({ alter: true, logging: false });
@@ -64,3 +58,11 @@ export const Sequelize = async () => {
     Logger.error("Unable to complete database initialization: ", error);
   }
 };
+
+export const wipe = async () => {
+  Logger.pending("Dropping tables...")
+  
+  await sequelize.drop()
+
+  Logger.info("Database wipe complete!")
+}

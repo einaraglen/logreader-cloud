@@ -1,5 +1,4 @@
 import Connection from "better-sqlite3";
-import Logger from "../services/output/logger";
 import CDPBasic from "./clients/basic";
 import CDPCompact from "./clients/compact";
 import CSVStream from "./clients/csv";
@@ -9,31 +8,29 @@ import { CDPDataStore, CDPInterface, SignalData } from "./types";
 class CDPParser implements CDPInterface {
   private client: CDPInterface;
   private csv_stream: CSVStream
+  private listener: any
 
-  constructor(file: string) {
+  constructor(file: string, listener: any) {
+    this.listener = listener
     this.csv_stream = new CSVStream();
     const type = this.getType(file);
 
     switch (type) {
       case CDPDataStore.Basic:
-        Logger.info("Found Log type BASIC")
         this.client = new CDPBasic(file, this.csv_stream);
         break;
       case CDPDataStore.Compact:
-        Logger.info("Found Log type COMPACT")
         this.client = new CDPCompact(file, this.csv_stream);
         break;
       case CDPDataStore.Split:
-        Logger.info("Found Log type SPLIT")
         this.client = new CDPSplit(file, this.csv_stream);
         break;
     }
   }
 
   public parse() {
-    Logger.pending("Parsing log...")
+    this.listener.postMessage("PARSING")
     this.client.parse();
-    Logger.info("Parse Complete!")
   }
 
   public range(): { min: number, max: number } {

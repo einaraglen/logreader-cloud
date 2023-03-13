@@ -7,6 +7,9 @@ import { route_options, websocket_options } from "./services/cors/options";
 import cors from "cors";
 import { version } from "../package.json";
 import websocket from "./websocket/routes";
+import { wipe } from "./services/sequelize/client";
+import Log from "./models/Log";
+import Signal from "./models/Signal";
 
 const run = () => {
   const PORT = process.env.PORT || 8080;
@@ -25,6 +28,10 @@ const run = () => {
   );
 
   websocket(io);
+
+  // Log.findAll().then((res) => console.log(res))
+  Signal.findAll({ where: { log_id: 1 }, raw: true }).then((res) => console.log(res))
+  // wipe()
 };
 
 export default run;
